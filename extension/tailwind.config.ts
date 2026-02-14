@@ -4,19 +4,28 @@ export default {
   content: ["./src/**/*.{tsx,ts}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          "Manrope",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "'Segoe UI'",
+          "Roboto",
+          "Helvetica",
+          "Arial",
+          "sans-serif"
+        ]
+      },
       colors: {
-        gitty: {
-          50: "#f0fdf4",
-          100: "#dcfce7",
-          200: "#bbf7d0",
-          300: "#86efac",
-          400: "#4ade80",
-          500: "#22c55e",
-          600: "#16a34a",
-          700: "#15803d",
-          800: "#166534",
-          900: "#14532d"
-        }
+        primary: "#3B82F6",
+        accent: "#14B8A6",
+        slate: {
+          DEFAULT: "#1F2937",
+          light: "#6B7280",
+          border: "#E5E7EB",
+          text: "#111827"
+        },
+        surface: "#FAFAFA"
       }
     }
   },
