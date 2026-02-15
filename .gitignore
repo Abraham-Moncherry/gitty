@@ -7,6 +7,7 @@ extension/.plasmo/
 
 # Supabase
 supabase/.temp/
+supabase/.branches/
 
 # Environment variables
 .env
