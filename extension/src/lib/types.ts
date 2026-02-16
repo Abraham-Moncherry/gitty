@@ -11,6 +11,7 @@ export interface User {
   historical_commits: number
   current_streak: number
   longest_streak: number
+  friend_code: string | null
   backfill_completed: boolean
   backfill_started_at: string | null
   created_at: string
@@ -66,7 +67,7 @@ export interface LeaderboardEntry {
 export interface Notification {
   id: string
   user_id: string
-  type: "daily_reminder" | "badge_earned" | "friend_request"
+  type: "goal_reminder" | "streak_warning" | "badge_earned" | "friend_request"
   title: string
   body: string
   read: boolean

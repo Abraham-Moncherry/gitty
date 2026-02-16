@@ -13,6 +13,8 @@ supabase/.branches/
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
 
 # OS files
 .DS_Store

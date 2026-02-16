@@ -16,6 +16,7 @@ port = 54323
 [auth]
 enabled = true
 site_url = "chrome-extension://gitty"
+additional_redirect_urls = ["https://jjlfccfcdoemfpbaeeichngnmfoceabl.chromiumapp.org/"]
 
 [auth.external.github]
 enabled = true
