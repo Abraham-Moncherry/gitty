@@ -4,7 +4,8 @@
     "paths": {
       "~*": ["./src/*"]
     },
-    "baseUrl": "."
+    "baseUrl": ".",
+    "types": ["vitest/globals"]
   },
   "include": [".plasmo/index.d.ts", "./**/*.ts", "./**/*.tsx"],
   "exclude": ["node_modules"]

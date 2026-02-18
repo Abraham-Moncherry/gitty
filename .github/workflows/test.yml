@@ -1,0 +1,74 @@
+name: Test
+
+on:
+  push:
+    branches: [main, "feature/*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  extension-tests:
+    name: Extension Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: extension
+        run: bun install --frozen-lockfile
+
+      - name: Run tests
+        working-directory: extension
+        run: bun run test
+
+      - name: Run tests with coverage
+        working-directory: extension
+        run: bun run test:coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: extension/coverage/
+
+  edge-function-tests:
+    name: Edge Function Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run sync-commits tests
+        run: deno test supabase/functions/sync-commits/index.test.ts --allow-net --allow-env
+
+      - name: Run backfill-history tests
+        run: deno test supabase/functions/backfill-history/index.test.ts --allow-net --allow-env
+
+      - name: Run calculate-leaderboard tests
+        run: deno test supabase/functions/calculate-leaderboard/index.test.ts --allow-net --allow-env
+
+  database-tests:
+    name: Database Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase
+        run: supabase start
+
+      - name: Run database tests
+        run: supabase db test
+
+      - name: Stop Supabase
+        run: supabase stop
