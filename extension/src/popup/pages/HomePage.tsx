@@ -32,8 +32,7 @@ export function HomePage() {
           </span>
         </div>
         {user && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-light">@{user.github_username}</span>
+          <div className="flex flex-col items-center gap-1">
             {user.avatar_url && (
               <img
                 src={user.avatar_url}
@@ -41,6 +40,7 @@ export function HomePage() {
                 className="w-7 h-7 rounded-full"
               />
             )}
+            <span className="text-[10px] text-slate-light">@{user.github_username}</span>
           </div>
         )}
       </div>
