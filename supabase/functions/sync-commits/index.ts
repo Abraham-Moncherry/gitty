@@ -9,6 +9,7 @@ import {
 } from "../_shared/github.ts"
 import { calculateStreaks, getTodayInTimezone } from "../_shared/streak.ts"
 import { jsonResponse, errorResponse } from "../_shared/response.ts"
+import { calculateLeaderboard } from "../_shared/leaderboard.ts"
 
 export async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
@@ -121,13 +122,9 @@ export async function handler(req: Request): Promise<Response> {
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((d) => ({ date: d.date, count: d.commit_count }))
 
-    // 10. Get rank from leaderboard_cache
-    const { data: rankData } = await serviceClient
-      .from("leaderboard_cache")
-      .select("rank")
-      .eq("user_id", auth.userId)
-      .eq("period", "all_time")
-      .single()
+    // 10. Recalculate leaderboard rankings (populates leaderboard_cache)
+    const allTimeRanks = await calculateLeaderboard(serviceClient)
+    const rank = allTimeRanks.get(auth.userId) ?? null
 
     // 11. Return stats matching CachedStats interface
     const dailyGoal = currentUser?.daily_goal ?? 5
@@ -140,7 +137,7 @@ export async function handler(req: Request): Promise<Response> {
       longestStreak: newLongestStreak,
       totalScore: totalCommits + (currentUser?.historical_commits ?? 0),
       weeklyCommits,
-      rank: rankData?.rank ?? null,
+      rank,
     })
   } catch (err) {
     if (err instanceof AuthError) {

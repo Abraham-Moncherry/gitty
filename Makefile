@@ -112,13 +112,6 @@ backfill: ## Manually trigger backfill-history (needs JWT)
 		-H "Authorization: Bearer $(JWT)" \
 		-H "Content-Type: application/json" | python3 -m json.tool
 
-leaderboard: ## Manually trigger calculate-leaderboard (uses service role key)
-	@SERVICE_KEY=$$(supabase status --output json 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin)['SERVICE_ROLE_KEY'])" 2>/dev/null || echo ""); \
-	if [ -z "$$SERVICE_KEY" ]; then echo "Error: Supabase not running. Run 'make db-start' first."; exit 1; fi; \
-	curl -s -X POST http://localhost:54321/functions/v1/calculate-leaderboard \
-		-H "Authorization: Bearer $$SERVICE_KEY" \
-		-H "Content-Type: application/json" | python3 -m json.tool
-
 # ─── Help ─────────────────────────────────────────────────────────────────────
 
 help: ## Show this help
