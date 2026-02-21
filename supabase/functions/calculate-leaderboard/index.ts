@@ -5,7 +5,7 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts"
 
 const PERIODS = ["daily", "weekly", "monthly", "all_time"] as const
 
-serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
   }
@@ -123,4 +123,6 @@ serve(async (req) => {
     console.error("calculate-leaderboard error:", err)
     return errorResponse("Internal server error", 500)
   }
-})
+}
+
+serve(handler)

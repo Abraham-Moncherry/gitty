@@ -37,7 +37,7 @@ const ALL_TIME_QUERY = `
   }
 `
 
-serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
   }
@@ -191,4 +191,6 @@ serve(async (req) => {
     console.error("backfill-history error:", err)
     return errorResponse("Internal server error", 500)
   }
-})
+}
+
+serve(handler)

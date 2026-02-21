@@ -10,7 +10,7 @@ import {
 import { calculateStreaks, getTodayInTimezone } from "../_shared/streak.ts"
 import { jsonResponse, errorResponse } from "../_shared/response.ts"
 
-serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
   }
@@ -152,4 +152,6 @@ serve(async (req) => {
     console.error("sync-commits error:", err)
     return errorResponse("Internal server error", 500)
   }
-})
+}
+
+serve(handler)
