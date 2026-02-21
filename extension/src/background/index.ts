@@ -118,11 +118,7 @@ async function syncCommits() {
       }
       await setCachedStats(stats)
 
-      // Show today's commit count on the extension icon badge
-      chrome.action.setBadgeText({
-        text: stats.todayCommits > 0 ? `${stats.todayCommits}` : ""
-      })
-      chrome.action.setBadgeBackgroundColor({ color: "#3B82F6" })
+
     }
   } catch (err) {
     console.error("[Gitty] Sync error:", err)
