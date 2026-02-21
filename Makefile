@@ -26,7 +26,9 @@ dev: ## Start Supabase + extension dev server + edge functions
 	@echo "==> Starting edge functions + extension in parallel..."
 	@trap 'kill 0' EXIT; \
 		supabase functions serve --env-file supabase/.env & \
-		(cd extension && bun run dev) & \
+		(cd extension && bun run dev & \
+			sleep 8 && ./scripts/fix-icons.sh build/chrome-mv3-dev && \
+			echo "==> Fixed extension icons (color)" && wait) & \
 		wait
 
 stop: ## Stop all services
@@ -40,7 +42,7 @@ ext-dev: ## Start extension dev server only
 	cd extension && bun run dev
 
 ext-build: ## Production build of extension
-	cd extension && bun run build
+	cd extension && bun run build && ./scripts/fix-icons.sh build/chrome-mv3-prod
 
 ext-test: ## Run extension unit tests (Vitest)
 	cd extension && bun run test
