@@ -51,7 +51,18 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     // 5. Upsert into daily_commits (service_role bypasses RLS)
+    // Use the max of existing count and events API count so we never
+    // overwrite backfilled data with a lower value
     const serviceClient = createServiceClient()
+
+    const { data: existingRow } = await serviceClient
+      .from("daily_commits")
+      .select("commit_count")
+      .eq("user_id", auth.userId)
+      .eq("date", todayStr)
+      .single()
+
+    const finalCount = Math.max(todayCommitCount, existingRow?.commit_count ?? 0)
 
     const { error: upsertError } = await serviceClient
       .from("daily_commits")
@@ -59,7 +70,7 @@ export async function handler(req: Request): Promise<Response> {
         {
           user_id: auth.userId,
           date: todayStr,
-          commit_count: todayCommitCount,
+          commit_count: finalCount,
           repos: Array.from(repos),
           synced_at: new Date().toISOString(),
         },
@@ -133,9 +144,9 @@ export async function handler(req: Request): Promise<Response> {
     const dailyGoal = currentUser?.daily_goal ?? 5
 
     return jsonResponse({
-      todayCommits: todayCommitCount,
+      todayCommits: finalCount,
       dailyGoal,
-      goalMet: todayCommitCount >= dailyGoal,
+      goalMet: finalCount >= dailyGoal,
       currentStreak,
       longestStreak: newLongestStreak,
       totalScore: totalCommits + (currentUser?.historical_commits ?? 0),
