@@ -3,12 +3,29 @@ import { corsHeaders } from "../_shared/cors.ts"
 import { createServiceClient } from "../_shared/supabase.ts"
 import { authenticateAndGetGitHub, AuthError } from "../_shared/auth.ts"
 import {
-  fetchUserEvents,
+  fetchContributionsGraphQL,
   GitHubError,
-  type GitHubEvent,
 } from "../_shared/github.ts"
 import { calculateStreaks, getTodayInTimezone } from "../_shared/streak.ts"
 import { jsonResponse, errorResponse } from "../_shared/response.ts"
+
+const CONTRIBUTIONS_QUERY = `
+  query($username: String!, $from: DateTime!, $to: DateTime!) {
+    user(login: $username) {
+      contributionsCollection(from: $from, to: $to) {
+        contributionCalendar {
+          totalContributions
+          weeks {
+            contributionDays {
+              date
+              contributionCount
+            }
+          }
+        }
+      }
+    }
+  }
+`
 
 export async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
@@ -23,36 +40,57 @@ export async function handler(req: Request): Promise<Response> {
 
     // 2. Get "today" in user's timezone
     const todayStr = getTodayInTimezone(auth.timezone)
+    const currentYear = todayStr.substring(0, 4)
 
-    // 3. Fetch GitHub events
-    const events = await fetchUserEvents(auth.githubUsername, auth.githubToken)
+    // 3. Fetch contributions via GraphQL (reliable, unlike Events API)
+    const fromDate = `${currentYear}-01-01T00:00:00Z`
+    const toDate = `${currentYear}-12-31T23:59:59Z`
 
-    // 4. Filter PushEvents, deduplicate by SHA, count today's commits
-    const seenShas = new Set<string>()
-    const repos = new Set<string>()
-    let todayCommitCount = 0
-
-    for (const event of events) {
-      if (event.type !== "PushEvent") continue
-
-      const eventDate = new Date(event.created_at).toLocaleDateString("en-CA", {
-        timeZone: auth.timezone,
-      })
-      if (eventDate !== todayStr) continue
-
-      repos.add(event.repo.name)
-
-      for (const commit of event.payload.commits ?? []) {
-        if (!seenShas.has(commit.sha)) {
-          seenShas.add(commit.sha)
-          todayCommitCount++
+    const gqlData = (await fetchContributionsGraphQL(
+      auth.githubUsername,
+      auth.githubToken,
+      CONTRIBUTIONS_QUERY,
+      { username: auth.githubUsername, from: fromDate, to: toDate }
+    )) as {
+      user: {
+        contributionsCollection: {
+          contributionCalendar: {
+            totalContributions: number
+            weeks: Array<{
+              contributionDays: Array<{
+                date: string
+                contributionCount: number
+              }>
+            }>
+          }
         }
       }
     }
 
-    // 5. Upsert into daily_commits (service_role bypasses RLS)
-    // Use the max of existing count and events API count so we never
-    // overwrite backfilled data with a lower value
+    const calendar =
+      gqlData.user.contributionsCollection.contributionCalendar
+
+    // 4. Extract today's count and build daily data from GraphQL
+    let todayCommitCount = 0
+    const dailyData: Array<{ date: string; commit_count: number }> = []
+
+    for (const week of calendar.weeks) {
+      for (const day of week.contributionDays) {
+        if (day.contributionCount > 0) {
+          dailyData.push({
+            date: day.date,
+            commit_count: day.contributionCount,
+          })
+        }
+        if (day.date === todayStr) {
+          todayCommitCount = day.contributionCount
+        }
+      }
+    }
+
+    // 5. Upsert today into daily_commits (service_role bypasses RLS)
+    // Use the max of GraphQL count and existing DB count so we never
+    // overwrite with a lower value
     const serviceClient = createServiceClient()
 
     const { data: existingRow } = await serviceClient
@@ -71,7 +109,7 @@ export async function handler(req: Request): Promise<Response> {
           user_id: auth.userId,
           date: todayStr,
           commit_count: finalCount,
-          repos: Array.from(repos),
+          repos: [],
           synced_at: new Date().toISOString(),
         },
         { onConflict: "user_id,date" }
@@ -92,7 +130,7 @@ export async function handler(req: Request): Promise<Response> {
     )
 
     // 7. Sum current year commits
-    const yearStart = `${todayStr.substring(0, 4)}-01-01`
+    const yearStart = `${currentYear}-01-01`
     const totalCommits = (allDays ?? [])
       .filter((d) => d.date >= yearStart)
       .reduce((sum, d) => sum + d.commit_count, 0)
