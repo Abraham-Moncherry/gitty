@@ -1,10 +1,12 @@
 import { useStats } from "~contexts/StatsContext"
-import { Flame } from "lucide-react"
+import { useAuth } from "~contexts/SupabaseAuthContext"
+import { Flame, GitCommitHorizontal } from "lucide-react"
 
 const WEEK_DAYS = ["M", "T", "W", "T", "F", "S", "S"]
 
 export function HomePage() {
   const { stats, loading } = useStats()
+  const { user } = useAuth()
 
   if (loading || !stats) {
     return (
@@ -21,13 +23,38 @@ export function HomePage() {
 
   return (
     <div className="flex-1 overflow-y-auto px-5 py-4">
-      {/* Streak */}
-      <div className="flex items-center gap-2 mb-5">
-        <Flame size={24} className="text-orange-500" />
-        <span className="text-2xl font-bold text-slate-text">
-          {stats.currentStreak}-day streak
-        </span>
+      {/* User header + streak */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <Flame size={24} className="text-orange-500" />
+          <span className="text-2xl font-bold text-slate-text">
+            {stats.currentStreak}-day streak
+          </span>
+        </div>
+        {user && (
+          <div className="flex flex-col items-center gap-1">
+            {user.avatar_url && (
+              <img
+                src={user.avatar_url}
+                alt={user.github_username}
+                className="w-7 h-7 rounded-full"
+              />
+            )}
+            <span className="text-[10px] text-slate-light">@{user.github_username}</span>
+          </div>
+        )}
       </div>
+
+      {/* Current year commits */}
+      {user && (
+        <div className="flex items-center gap-2 mb-5 bg-surface rounded-xl px-4 py-3">
+          <GitCommitHorizontal size={18} className="text-primary" />
+          <span className="text-sm text-slate-text">
+            <span className="font-bold">{user.total_commits.toLocaleString()}</span>{" "}
+            commits in {new Date().getFullYear()}
+          </span>
+        </div>
+      )}
 
       {/* Today's Progress */}
       <div className="mb-5">

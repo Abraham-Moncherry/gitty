@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useAuth } from "~contexts/SupabaseAuthContext"
 import { Github } from "lucide-react"
+import gittyLogo from "url:~assets/Gitty-logo.png"
 
 export function LoginPage() {
   const { signInWithGitHub } = useAuth()
@@ -17,8 +18,7 @@ export function LoginPage() {
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center bg-white px-8">
-      <span className="text-5xl mb-3">🎮</span>
-      <h1 className="text-3xl font-bold text-slate-text">Gitty</h1>
+      <img src={gittyLogo} alt="Gitty" className="w-48 mb-2" />
       <p className="mt-2 text-sm text-slate-light">
         Gamify your git commits
       </p>

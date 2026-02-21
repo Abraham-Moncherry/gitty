@@ -103,12 +103,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const accessToken = hashParams.get("access_token")
     const refreshToken = hashParams.get("refresh_token")
+    const providerToken = hashParams.get("provider_token")
 
     if (accessToken && refreshToken) {
       await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken
       })
+
+      // Store GitHub provider token in user_metadata so edge functions can access it
+      if (providerToken) {
+        await supabase.auth.updateUser({
+          data: { provider_token: providerToken }
+        })
+      }
     }
   }
 

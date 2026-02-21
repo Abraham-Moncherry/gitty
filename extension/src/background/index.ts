@@ -52,7 +52,39 @@ async function checkAuthAndSync() {
     return
   }
 
+  await backfillIfNeeded()
   await syncCommits()
+}
+
+// ── Backfill history (runs once after first login) ───────────
+
+async function backfillIfNeeded() {
+  const {
+    data: { session }
+  } = await supabase.auth.getSession()
+  if (!session) return
+
+  try {
+    const { data: user } = await supabase
+      .from("users")
+      .select("backfill_completed")
+      .eq("id", session.user.id)
+      .single()
+
+    if (user?.backfill_completed) return
+
+    console.log("[Gitty] Running first-time backfill...")
+    const { data, error } = await supabase.functions.invoke("backfill-history")
+
+    if (error) {
+      console.warn("[Gitty] backfill-history failed:", error.message)
+      return
+    }
+
+    console.log("[Gitty] Backfill complete:", data)
+  } catch (err) {
+    console.error("[Gitty] Backfill error:", err)
+  }
 }
 
 // ── Commit sync ───────────────────────────────────────────────

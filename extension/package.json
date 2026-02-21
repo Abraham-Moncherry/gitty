@@ -43,7 +43,9 @@
     ],
     "host_permissions": [
       "https://api.github.com/*",
-      "https://*.supabase.co/*"
+      "https://*.supabase.co/*",
+      "http://127.0.0.1:54321/*",
+      "http://localhost:54321/*"
     ]
   }
 }
