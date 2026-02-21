@@ -28,7 +28,9 @@ dev: ## Start Supabase + extension dev server + edge functions
 		supabase functions serve --env-file supabase/.env & \
 		(cd extension && bun run dev & \
 			sleep 8 && ./scripts/fix-icons.sh build/chrome-mv3-dev && \
-			echo "==> Fixed extension icons (color)" && wait) & \
+			echo "==> Fixed extension icons (color)" && \
+			while true; do sleep 3 && ./scripts/fix-icons.sh build/chrome-mv3-dev; done & \
+			wait) & \
 		wait
 
 stop: ## Stop all services

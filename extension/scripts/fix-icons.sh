@@ -6,13 +6,18 @@
 BUILD_DIR="${1:-build/chrome-mv3-dev}"
 ASSETS_DIR="$(dirname "$0")/../assets"
 
+fixed=0
 for size in 16 32 48 64 128; do
   src="$ASSETS_DIR/icon${size}.png"
   if [ -f "$src" ]; then
-    # Find the plasmo-generated icon file for this size
     target=$(find "$BUILD_DIR" -name "icon${size}.plasmo.*.png" 2>/dev/null | head -1)
-    if [ -n "$target" ]; then
+    if [ -n "$target" ] && ! cmp -s "$src" "$target"; then
       cp "$src" "$target"
+      fixed=$((fixed + 1))
     fi
   fi
 done
+
+if [ "$fixed" -gt 0 ]; then
+  echo "  -> Replaced $fixed greyscale icon(s) with color versions"
+fi

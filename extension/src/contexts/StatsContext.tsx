@@ -30,54 +30,34 @@ export function StatsProvider({ children }: { children: ReactNode }) {
   const refreshStats = useCallback(async () => {
     if (!user || !session) return
 
-    const today = new Date().toISOString().split("T")[0]
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-commits")
 
-    // Fetch today's commits
-    const { data: todayData } = await supabase
-      .from("daily_commits")
-      .select("commit_count, goal_met")
-      .eq("user_id", user.id)
-      .eq("date", today)
-      .single()
+      if (error || !data) {
+        console.warn("[Gitty] sync-commits failed in StatsContext:", error?.message)
+        setLoading(false)
+        return
+      }
 
-    // Fetch this week's commits (Monday to Sunday)
-    const now = new Date()
-    const dayOfWeek = now.getDay()
-    const monday = new Date(now)
-    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
-    const mondayStr = monday.toISOString().split("T")[0]
+      const newStats: CachedStats = {
+        todayCommits: data.todayCommits ?? 0,
+        dailyGoal: data.dailyGoal ?? 5,
+        goalMet: data.goalMet ?? false,
+        currentStreak: data.currentStreak ?? 0,
+        longestStreak: data.longestStreak ?? 0,
+        totalScore: data.totalScore ?? 0,
+        weeklyCommits: data.weeklyCommits ?? [],
+        rank: data.rank ?? null,
+        lastFetched: Date.now()
+      }
 
-    const { data: weekData } = await supabase
-      .from("daily_commits")
-      .select("date, commit_count")
-      .eq("user_id", user.id)
-      .gte("date", mondayStr)
-      .order("date", { ascending: true })
-
-    // Fetch user's rank
-    const { data: rankData } = await supabase
-      .from("leaderboard_cache")
-      .select("rank")
-      .eq("user_id", user.id)
-      .eq("period", "all_time")
-      .single()
-
-    const newStats: CachedStats = {
-      todayCommits: todayData?.commit_count ?? 0,
-      dailyGoal: user.daily_goal,
-      goalMet: todayData?.goal_met ?? false,
-      currentStreak: user.current_streak,
-      longestStreak: user.longest_streak,
-      totalScore: user.total_commits + user.historical_commits,
-      weeklyCommits:
-        weekData?.map((d) => ({ date: d.date, count: d.commit_count })) ?? [],
-      rank: rankData?.rank ?? null,
-      lastFetched: Date.now()
+      setStats(newStats)
+      await setCachedStats(newStats)
+    } catch (err) {
+      console.error("[Gitty] StatsContext refresh error:", err)
+    } finally {
+      setLoading(false)
     }
-
-    setStats(newStats)
-    await setCachedStats(newStats)
-    setLoading(false)
   }, [user, session])
 
   useEffect(() => {
