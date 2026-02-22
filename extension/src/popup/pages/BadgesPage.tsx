@@ -3,7 +3,45 @@ import { supabase } from "~lib/supabase"
 import { useAuth } from "~contexts/SupabaseAuthContext"
 import { useStats } from "~contexts/StatsContext"
 import type { Badge } from "~lib/types"
-import { Check } from "lucide-react"
+import {
+  Check,
+  Target,
+  GitCommit,
+  Code,
+  Shield,
+  Cpu,
+  Trophy,
+  Flame,
+  Zap,
+  Swords,
+  Crown,
+  Gem,
+  CalendarCheck,
+  TrendingUp,
+  Rocket,
+  Users,
+  Sparkles,
+  type LucideIcon
+} from "lucide-react"
+
+const iconMap: Record<string, LucideIcon> = {
+  target: Target,
+  "git-commit": GitCommit,
+  code: Code,
+  shield: Shield,
+  cpu: Cpu,
+  trophy: Trophy,
+  flame: Flame,
+  zap: Zap,
+  swords: Swords,
+  crown: Crown,
+  gem: Gem,
+  "calendar-check": CalendarCheck,
+  "trending-up": TrendingUp,
+  rocket: Rocket,
+  users: Users,
+  sparkles: Sparkles
+}
 
 interface BadgeWithStatus extends Badge {
   earned: boolean
@@ -96,7 +134,18 @@ export function BadgesPage() {
               className={`flex items-center gap-3 p-3 rounded-xl ${
                 badge.earned ? "bg-surface" : "bg-surface opacity-60"
               }`}>
-              <span className="text-2xl w-10 text-center">{badge.icon}</span>
+              {(() => {
+                const Icon = iconMap[badge.icon]
+                return Icon ? (
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    badge.earned ? "bg-accent/15 text-accent" : "bg-slate-light/10 text-slate-light"
+                  }`}>
+                    <Icon size={20} />
+                  </div>
+                ) : (
+                  <span className="text-2xl w-10 text-center">{badge.icon}</span>
+                )
+              })()}
               <div className="flex-1 min-w-0">
                 <p
                   className={`text-sm font-semibold ${
