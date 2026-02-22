@@ -5,8 +5,23 @@
 
 BUILD_DIR="${1:-build/chrome-mv3-dev}"
 ASSETS_DIR="$(dirname "$0")/../assets"
+GEN_ASSETS_DIR="$(dirname "$0")/../.plasmo/gen-assets"
 
 fixed=0
+
+# Fix gen-assets (Plasmo's source) so hot reloads copy colored icons
+for size in 16 32 48 64 128; do
+  src="$ASSETS_DIR/icon${size}.png"
+  if [ -f "$src" ]; then
+    gen_target="$GEN_ASSETS_DIR/icon${size}.plasmo.png"
+    if [ -f "$gen_target" ] && ! cmp -s "$src" "$gen_target"; then
+      cp "$src" "$gen_target"
+      fixed=$((fixed + 1))
+    fi
+  fi
+done
+
+# Fix build output (already-copied hashed icons)
 for size in 16 32 48 64 128; do
   src="$ASSETS_DIR/icon${size}.png"
   if [ -f "$src" ]; then
