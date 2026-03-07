@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useAuth } from "~contexts/SupabaseAuthContext"
 import { supabase } from "~lib/supabase"
 import { LogOut, Copy, UserPlus } from "lucide-react"
+import { FriendsSection } from "~popup/components/FriendsSection"
 
 export function SettingsPage() {
   const { user, signOut } = useAuth()
@@ -14,6 +15,11 @@ export function SettingsPage() {
   )
   const [friendCodeInput, setFriendCodeInput] = useState("")
   const [copied, setCopied] = useState(false)
+  const [friendStatus, setFriendStatus] = useState<{
+    type: "success" | "error"
+    message: string
+  } | null>(null)
+  const [addingFriend, setAddingFriend] = useState(false)
 
   if (!user) return null
 
@@ -30,22 +36,35 @@ export function SettingsPage() {
   }
 
   async function handleAddFriend() {
-    if (!friendCodeInput.trim()) return
+    const code = friendCodeInput.trim()
+    if (!code) return
 
-    const { data: friend } = await supabase
-      .from("users")
-      .select("id")
-      .eq("friend_code", friendCodeInput.trim().toUpperCase())
-      .single()
+    setAddingFriend(true)
+    setFriendStatus(null)
 
-    if (friend) {
-      await supabase.from("friendships").insert({
-        requester_id: user.id,
-        addressee_id: friend.id,
-        status: "pending"
-      })
+    const { data, error } = await supabase.functions.invoke("manage-friends", {
+      body: { action: "send_request", friend_code: code }
+    })
+
+    if (error) {
+      // Non-2xx responses: parse the JSON body from the error context
+      let message = "Failed to send friend request"
+      try {
+        const body = await error.context.json()
+        if (body?.error) message = body.error
+      } catch {
+        // fallback if body can't be parsed
+      }
+      setFriendStatus({ type: "error", message })
+    } else if (data?.error) {
+      setFriendStatus({ type: "error", message: data.error })
+    } else {
+      setFriendStatus({ type: "success", message: "Friend request sent!" })
       setFriendCodeInput("")
     }
+
+    setAddingFriend(false)
+    setTimeout(() => setFriendStatus(null), 3000)
   }
 
   const joinDate = new Date(user.created_at).toLocaleDateString("en-US", {
@@ -149,6 +168,9 @@ export function SettingsPage() {
         </div>
       </div>
 
+      {/* Friends */}
+      <FriendsSection />
+
       {/* Add Friend */}
       <div className="mb-6">
         <label className="text-sm font-medium text-slate-text">
@@ -164,10 +186,19 @@ export function SettingsPage() {
           />
           <button
             onClick={handleAddFriend}
-            className="p-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors">
+            disabled={addingFriend}
+            className="p-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50">
             <UserPlus size={16} />
           </button>
         </div>
+        {friendStatus && (
+          <p
+            className={`text-xs mt-1.5 ${
+              friendStatus.type === "success" ? "text-accent" : "text-red-500"
+            }`}>
+            {friendStatus.message}
+          </p>
+        )}
       </div>
 
       {/* Sign Out */}

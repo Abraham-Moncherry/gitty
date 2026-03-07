@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import { corsHeaders } from "../_shared/cors.ts"
-import { createServiceClient } from "../_shared/supabase.ts"
-import { authenticateAndGetGitHub, AuthError } from "../_shared/auth.ts"
+import { createUserClient, createServiceClient } from "../_shared/supabase.ts"
+import { AuthError } from "../_shared/auth.ts"
 import { jsonResponse, errorResponse } from "../_shared/response.ts"
 
 interface ManageFriendsBody {
@@ -11,15 +11,39 @@ interface ManageFriendsBody {
   friend_id?: string
 }
 
+async function authenticateUser(authHeader: string | null) {
+  if (!authHeader) {
+    throw new AuthError("Missing authorization header", 401)
+  }
+  const userClient = createUserClient(authHeader)
+  const {
+    data: { user },
+    error,
+  } = await userClient.auth.getUser()
+  if (error || !user) {
+    throw new AuthError("Invalid token", 401)
+  }
+
+  const serviceClient = createServiceClient()
+  const { data: profile } = await serviceClient
+    .from("users")
+    .select("github_username")
+    .eq("id", user.id)
+    .single()
+
+  return {
+    userId: user.id,
+    githubUsername: profile?.github_username ?? "",
+  }
+}
+
 export async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
   }
 
   try {
-    const auth = await authenticateAndGetGitHub(
-      req.headers.get("Authorization")
-    )
+    const auth = await authenticateUser(req.headers.get("Authorization"))
 
     const body: ManageFriendsBody = await req.json()
     const serviceClient = createServiceClient()
@@ -194,7 +218,6 @@ export async function handler(req: Request): Promise<Response> {
     if (err instanceof AuthError) {
       return errorResponse(err.message, err.status)
     }
-    console.error("manage-friends error:", err)
     return errorResponse("Internal server error", 500)
   }
 }
