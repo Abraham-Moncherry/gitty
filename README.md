@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="extension/assets/Gitty-logo.png" alt="Gitty" width="300" />
+  <img src="extension/assets/Gitty-logo-subtitle.png" alt="Gitty" width="300" />
 </p>
 
 <p align="center">
@@ -151,6 +151,13 @@ Run `make help` to see all available commands.
 | `make friends-accept FROM=alice TO=real` | Accept a friend request via DB |
 | `make friends-reject FROM=bob TO=real` | Reject a friend request via DB |
 | `make friends-remove FROM=alice TO=real` | Remove a friendship |
+| **Notification Testing** | |
+| `make notify TYPE=friend_request` | Create a test notification for your account |
+| `make notify TYPE=goal_reminder` | Simulate a goal reminder notification |
+| `make notify TYPE=streak_warning` | Simulate a streak warning notification |
+| `make notify TYPE=badge_earned` | Simulate a badge earned notification |
+| `make notif-status` | Show all notifications in the DB |
+| `make notif-clear` | Clear all your notifications |
 | **Manual Testing** | |
 | `make sync JWT=<token>` | Trigger sync-commits |
 | `make backfill JWT=<token>` | Trigger backfill-history |
@@ -172,10 +179,26 @@ make friends-reset    # Creates mock users: alice (TEST-0001), bob (TEST-0002), 
 ### Test flow
 
 ```bash
-make friends-send FROM=alice TO=real     # Alice sends you a friend request
+make friends-send FROM=alice TO=real     # Alice sends you a friend request (+ notification)
 make friends-status                      # Verify it's pending
-# Open extension → Settings → accept/reject from the UI
+# Open extension → Alerts tab → accept/reject from the UI
 make friends-status                      # Verify it's accepted/rejected
 ```
 
 User names for the script: `alice`, `bob`, `charlie`, `real` (your account).
+
+## Testing Notifications
+
+Create test notifications to verify the in-app notification badge and Alerts page:
+
+```bash
+make notify TYPE=friend_request          # Friend request notification
+make notify TYPE=goal_reminder           # "Keep going!" reminder
+make notify TYPE=streak_warning          # "Streak at risk!" warning
+make notify TYPE=badge_earned            # "New badge!" notification
+make notif-status                        # See all notifications in DB
+make notif-clear                         # Clear your notifications
+```
+
+Notifications appear as a red badge on the Alerts tab. Open the extension popup to see them.
+You can target a specific mock user with `WHO=alice` (default: `real`).

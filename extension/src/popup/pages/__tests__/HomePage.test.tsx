@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react"
 
-const { mockUseStats } = vi.hoisted(() => ({
-  mockUseStats: vi.fn()
+const { mockUseStats, mockUseAuth } = vi.hoisted(() => ({
+  mockUseStats: vi.fn(),
+  mockUseAuth: vi.fn()
 }))
 
 vi.mock("~contexts/StatsContext", () => ({
@@ -9,25 +10,31 @@ vi.mock("~contexts/StatsContext", () => ({
   StatsProvider: ({ children }: any) => children
 }))
 
+vi.mock("~contexts/SupabaseAuthContext", () => ({
+  useAuth: mockUseAuth,
+  AuthProvider: ({ children }: any) => children
+}))
+
 import { HomePage } from "~popup/pages/HomePage"
 
 describe("HomePage", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseAuth.mockReturnValue({ user: { id: "user-1", daily_goal: 5 } })
   })
 
   it("shows loading when stats are loading", () => {
     mockUseStats.mockReturnValue({ stats: null, loading: true })
     render(<HomePage />)
 
-    expect(screen.getByText("Loading...")).toBeInTheDocument()
+    expect(screen.getByLabelText("Loading...")).toBeInTheDocument()
   })
 
   it("shows loading when stats is null and loading is true", () => {
     mockUseStats.mockReturnValue({ stats: null, loading: true })
     render(<HomePage />)
 
-    expect(screen.getByText("Loading...")).toBeInTheDocument()
+    expect(screen.getByLabelText("Loading...")).toBeInTheDocument()
   })
 
   it("displays streak count", () => {

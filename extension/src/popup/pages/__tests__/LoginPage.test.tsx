@@ -22,11 +22,11 @@ describe("LoginPage", () => {
     })
   })
 
-  it('renders "Gitty" heading and tagline', () => {
+  it("renders Gitty logo and sign-in button", () => {
     render(<LoginPage />)
 
-    expect(screen.getByText("Gitty")).toBeInTheDocument()
-    expect(screen.getByText("Gamify your git commits")).toBeInTheDocument()
+    expect(screen.getByAltText("Gitty")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /sign in with github/i })).toBeInTheDocument()
   })
 
   it('renders "Sign in with GitHub" button', () => {

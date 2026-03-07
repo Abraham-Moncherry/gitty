@@ -63,7 +63,7 @@ describe("BadgesPage", () => {
 
     render(<BadgesPage />)
 
-    expect(screen.getByText("Loading...")).toBeInTheDocument()
+    expect(screen.getByLabelText("Loading...")).toBeInTheDocument()
   })
 
   it("renders badges with name, description, icon", async () => {
@@ -88,7 +88,7 @@ describe("BadgesPage", () => {
     render(<BadgesPage />)
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading...")).not.toBeInTheDocument()
+      expect(screen.queryByLabelText("Loading...")).not.toBeInTheDocument()
     })
 
     expect(screen.getByText("First Blood")).toBeInTheDocument()
@@ -122,7 +122,7 @@ describe("BadgesPage", () => {
     render(<BadgesPage />)
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading...")).not.toBeInTheDocument()
+      expect(screen.queryByLabelText("Loading...")).not.toBeInTheDocument()
     })
 
     // Unearned badge should show progress text (current_streak=7, requirement=30)
@@ -155,7 +155,7 @@ describe("BadgesPage", () => {
     render(<BadgesPage />)
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading...")).not.toBeInTheDocument()
+      expect(screen.queryByLabelText("Loading...")).not.toBeInTheDocument()
     })
 
     // Header should show "Earned (2/3)"

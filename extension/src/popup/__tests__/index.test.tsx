@@ -59,7 +59,7 @@ describe("Popup (popup/index.tsx)", () => {
 
     render(<Popup />)
 
-    expect(screen.getByText("Loading...")).toBeInTheDocument()
+    expect(screen.getByLabelText("Loading...")).toBeInTheDocument()
   })
 
   it("shows LoginPage when no session", () => {

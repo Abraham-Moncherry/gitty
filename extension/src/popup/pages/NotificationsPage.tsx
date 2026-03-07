@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "~contexts/SupabaseAuthContext"
 import { supabase } from "~lib/supabase"
-import { Bell, UserPlus, Target, Flame, Award, Check, X } from "lucide-react"
+import { Bell, UserPlus, Target, Flame, Award, Check, X, Loader2 } from "lucide-react"
 
 interface Notification {
   id: string
@@ -123,7 +123,7 @@ export function NotificationsPage() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-slate-light">Loading...</p>
+        <Loader2 size={24} className="text-primary animate-spin" />
       </div>
     )
   }

@@ -21,6 +21,7 @@ import {
   Rocket,
   Users,
   Sparkles,
+  Loader2,
   type LucideIcon
 } from "lucide-react"
 
@@ -123,9 +124,9 @@ export function BadgesPage() {
       </h2>
 
       {loading ? (
-        <p className="text-sm text-slate-light text-center py-8">
-          Loading...
-        </p>
+        <div className="flex justify-center py-8">
+          <Loader2 size={24} className="text-primary animate-spin" aria-label="Loading..." />
+        </div>
       ) : (
         <div className="space-y-2">
           {badges.map((badge) => (

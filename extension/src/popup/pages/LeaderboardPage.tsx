@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { useLeaderboard, type Period, type Scope } from "~contexts/LeaderboardContext"
 import { useAuth } from "~contexts/SupabaseAuthContext"
+import { Loader2 } from "lucide-react"
 
 const PERIODS: { id: Period; label: string }[] = [
   { id: "daily", label: "Daily" },
@@ -68,9 +69,9 @@ export function LeaderboardPage() {
 
       {/* List */}
       {loading ? (
-        <p className="text-center text-sm text-slate-light py-8">
-          Loading...
-        </p>
+        <div className="flex justify-center py-8">
+          <Loader2 size={24} className="text-primary animate-spin" />
+        </div>
       ) : !leaderboard?.entries.length ? (
         <p className="text-center text-sm text-slate-light py-8">
           No entries yet

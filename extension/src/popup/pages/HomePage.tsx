@@ -1,6 +1,6 @@
 import { useStats } from "~contexts/StatsContext"
 import { useAuth } from "~contexts/SupabaseAuthContext"
-import { Flame, GitCommitHorizontal } from "lucide-react"
+import { Flame, GitCommitHorizontal, Loader2 } from "lucide-react"
 
 const WEEK_DAYS = ["M", "T", "W", "T", "F", "S", "S"]
 
@@ -11,7 +11,7 @@ export function HomePage() {
   if (loading || !stats) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-slate-light text-sm">Loading...</p>
+        <Loader2 size={24} className="text-primary animate-spin" aria-label="Loading..." />
       </div>
     )
   }

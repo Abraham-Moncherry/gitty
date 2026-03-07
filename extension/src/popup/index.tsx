@@ -12,6 +12,7 @@ import { BadgesPage } from "~popup/pages/BadgesPage"
 import { NotificationsPage } from "~popup/pages/NotificationsPage"
 import { SettingsPage } from "~popup/pages/SettingsPage"
 import { supabase } from "~lib/supabase"
+import { Loader2 } from "lucide-react"
 
 const pages: Record<TabId, () => JSX.Element> = {
   home: HomePage,
@@ -52,7 +53,7 @@ function PopupContent() {
   if (loading) {
     return (
       <div className="w-[380px] h-[500px] flex items-center justify-center bg-white">
-        <p className="text-slate-light text-sm">Loading...</p>
+        <Loader2 size={24} className="text-primary animate-spin" aria-label="Loading..." />
       </div>
     )
   }
