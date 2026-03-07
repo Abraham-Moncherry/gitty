@@ -81,7 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       provider: "github",
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: true
+        skipBrowserRedirect: true,
+        scopes: "read:user"
       }
     })
 

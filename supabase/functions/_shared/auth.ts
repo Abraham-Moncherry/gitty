@@ -22,11 +22,12 @@ export async function authenticateAndGetGitHub(
     throw new AuthError("Missing authorization header", 401)
   }
 
+  const token = authHeader.replace("Bearer ", "")
   const userClient = createUserClient(authHeader)
   const {
     data: { user },
     error: authError,
-  } = await userClient.auth.getUser()
+  } = await userClient.auth.getUser(token)
 
   if (authError || !user) {
     throw new AuthError("Invalid token", 401)
