@@ -17,7 +17,7 @@ export default {
         ]
       },
       colors: {
-        primary: "#3B82F6",
+        primary: "#ff66c4",
         accent: "#14B8A6",
         slate: {
           DEFAULT: "#1F2937",
