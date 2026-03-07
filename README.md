@@ -102,6 +102,21 @@ Env files are pre-configured for local development:
 
 To get your local keys: `make db-status`
 
+## Privacy
+
+See [PRIVACY.md](PRIVACY.md) for the full privacy policy. In short: Gitty only has **read-only** access to your GitHub profile and contribution calendar. We cannot access your code, repos, or modify anything on your account.
+
+## Production Checklist
+
+Before publishing to the Chrome Web Store:
+
+1. **Supabase project** — create a production Supabase project and update `extension/.env.production` with the production URL and anon key
+2. **Deploy edge functions** — run `make fn-deploy`
+3. **GitHub OAuth app** — create a production GitHub OAuth app with the callback URL pointing to your production Supabase auth callback
+4. **OAuth scopes** — in your [GitHub OAuth App settings](https://github.com/settings/developers), ensure the app only requests `read:user` scope
+5. **Build the extension** — run `make ext-build`, then zip `extension/build/chrome-mv3-prod/`
+6. **Chrome Web Store** — upload the zip to the [Developer Dashboard](https://chrome.google.com/webstore/devconsole) ($5 one-time fee)
+
 ## Make Commands
 
 Run `make help` to see all available commands.
@@ -129,6 +144,13 @@ Run `make help` to see all available commands.
 | `make fn-serve` | Serve edge functions locally (hot reload) |
 | `make fn-deploy` | Deploy all edge functions to production |
 | `make logs` | Tail edge function logs |
+| **Friend Testing** | |
+| `make friends-reset` | Reset friend test data (mock users + clear friendships) |
+| `make friends-status` | Show all friendships and friend codes |
+| `make friends-send FROM=alice TO=real` | Simulate a friend request |
+| `make friends-accept FROM=alice TO=real` | Accept a friend request via DB |
+| `make friends-reject FROM=bob TO=real` | Reject a friend request via DB |
+| `make friends-remove FROM=alice TO=real` | Remove a friendship |
 | **Manual Testing** | |
 | `make sync JWT=<token>` | Trigger sync-commits |
 | `make backfill JWT=<token>` | Trigger backfill-history |
@@ -136,3 +158,24 @@ Run `make help` to see all available commands.
 | **Utilities** | |
 | `make test` | Run all tests |
 | `make clean` | Remove build artifacts |
+
+## Testing Friends
+
+The friend feature includes mock users and a test script for simulating friend scenarios locally.
+
+### Setup
+
+```bash
+make friends-reset    # Creates mock users: alice (TEST-0001), bob (TEST-0002), charlie (TEST-0003)
+```
+
+### Test flow
+
+```bash
+make friends-send FROM=alice TO=real     # Alice sends you a friend request
+make friends-status                      # Verify it's pending
+# Open extension → Settings → accept/reject from the UI
+make friends-status                      # Verify it's accepted/rejected
+```
+
+User names for the script: `alice`, `bob`, `charlie`, `real` (your account).

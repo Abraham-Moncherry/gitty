@@ -4,7 +4,8 @@
 #        make test     (run all tests)
 
 .PHONY: setup dev stop ext-dev ext-build ext-test db-start db-stop db-reset \
-        db-status db-studio fn-serve fn-deploy test logs help
+        db-status db-studio fn-serve fn-deploy test logs help \
+        friends-reset friends-status friends-send friends-accept friends-reject friends-remove
 
 # ─── First-time setup ────────────────────────────────────────────────────────
 
@@ -99,6 +100,26 @@ logs: ## Tail Supabase edge function logs
 
 clean: ## Remove build artifacts
 	rm -rf extension/build extension/.plasmo extension/coverage
+
+# ─── Friend testing ──────────────────────────────────────────────────────────
+
+friends-reset: ## Reset friend test data (mock users + clear friendships)
+	./scripts/test-friends.sh reset
+
+friends-status: ## Show all friendships and friend codes
+	./scripts/test-friends.sh status
+
+friends-send: ## Send friend request (usage: make friends-send FROM=alice TO=real)
+	./scripts/test-friends.sh send $(or $(FROM),charlie) $(or $(TO),real)
+
+friends-accept: ## Accept friend request (usage: make friends-accept FROM=alice TO=real)
+	./scripts/test-friends.sh accept $(FROM) $(TO)
+
+friends-reject: ## Reject friend request (usage: make friends-reject FROM=alice TO=real)
+	./scripts/test-friends.sh reject $(FROM) $(TO)
+
+friends-remove: ## Remove friendship (usage: make friends-remove FROM=alice TO=real)
+	./scripts/test-friends.sh remove $(FROM) $(TO)
 
 # ─── Manual testing helpers ───────────────────────────────────────────────────
 
