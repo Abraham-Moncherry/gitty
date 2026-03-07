@@ -10,19 +10,19 @@ VALUES
   (
     '00000000-0000-0000-0000-000000000001',
     'alice@test.com',
-    '{"user_name": "alice-dev", "avatar_url": "https://i.pravatar.cc/150?u=alice", "full_name": "Alice Developer"}'::jsonb,
+    '{"user_name": "alice-dev", "avatar_url": "https://avatars.githubusercontent.com/u/100000001", "full_name": "Sarah Chen"}'::jsonb,
     now(), now(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated'
   ),
   (
     '00000000-0000-0000-0000-000000000002',
     'bob@test.com',
-    '{"user_name": "bob-codes", "avatar_url": "https://i.pravatar.cc/150?u=bob", "full_name": "Bob Coder"}'::jsonb,
+    '{"user_name": "bob-codes", "avatar_url": "https://avatars.githubusercontent.com/u/100000002", "full_name": "Marcus Rivera"}'::jsonb,
     now(), now(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated'
   ),
   (
     '00000000-0000-0000-0000-000000000003',
     'charlie@test.com',
-    '{"user_name": "charlie-git", "avatar_url": "https://i.pravatar.cc/150?u=charlie", "full_name": "Charlie Git"}'::jsonb,
+    '{"user_name": "charlie-git", "avatar_url": "https://avatars.githubusercontent.com/u/100000003", "full_name": "Priya Patel"}'::jsonb,
     now(), now(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated'
   );
 

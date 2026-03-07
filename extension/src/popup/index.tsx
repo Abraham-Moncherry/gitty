@@ -1,6 +1,6 @@
 import "~styles/globals.css"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { AuthProvider, useAuth } from "~contexts/SupabaseAuthContext"
 import { StatsProvider } from "~contexts/StatsContext"
 import { LeaderboardProvider } from "~contexts/LeaderboardContext"
@@ -9,18 +9,45 @@ import { LoginPage } from "~popup/pages/LoginPage"
 import { HomePage } from "~popup/pages/HomePage"
 import { LeaderboardPage } from "~popup/pages/LeaderboardPage"
 import { BadgesPage } from "~popup/pages/BadgesPage"
+import { NotificationsPage } from "~popup/pages/NotificationsPage"
 import { SettingsPage } from "~popup/pages/SettingsPage"
+import { supabase } from "~lib/supabase"
 
 const pages: Record<TabId, () => JSX.Element> = {
   home: HomePage,
   board: LeaderboardPage,
   badge: BadgesPage,
+  notif: NotificationsPage,
   me: SettingsPage
 }
 
 function PopupContent() {
   const { session, user, loading, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState<TabId>("home")
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!user) return
+    const { count } = await supabase
+      .from("notification_queue")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("read", false)
+
+    setUnreadCount(count ?? 0)
+  }, [user])
+
+  useEffect(() => {
+    fetchUnreadCount()
+  }, [fetchUnreadCount])
+
+  // When switching to notifications tab, clear the badge after a short delay
+  useEffect(() => {
+    if (activeTab === "notif" && unreadCount > 0) {
+      const timer = setTimeout(() => setUnreadCount(0), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [activeTab, unreadCount])
 
   if (loading) {
     return (
@@ -59,7 +86,11 @@ function PopupContent() {
   return (
     <div className="w-[380px] h-[500px] flex flex-col bg-white">
       <ActivePage />
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        unreadCount={unreadCount}
+      />
     </div>
   )
 }

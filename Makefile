@@ -5,7 +5,8 @@
 
 .PHONY: setup dev stop ext-dev ext-build ext-test db-start db-stop db-reset \
         db-status db-studio fn-serve fn-deploy test logs help \
-        friends-reset friends-status friends-send friends-accept friends-reject friends-remove
+        friends-reset friends-status friends-send friends-accept friends-reject friends-remove \
+        notify notif-status notif-clear
 
 # ─── First-time setup ────────────────────────────────────────────────────────
 
@@ -120,6 +121,17 @@ friends-reject: ## Reject friend request (usage: make friends-reject FROM=alice 
 
 friends-remove: ## Remove friendship (usage: make friends-remove FROM=alice TO=real)
 	./scripts/test-friends.sh remove $(FROM) $(TO)
+
+# ─── Notification testing ────────────────────────────────────────────────────
+
+notify: ## Create test notification (usage: make notify TYPE=friend_request [WHO=real])
+	./scripts/test-friends.sh notify $(or $(TYPE),friend_request) $(or $(WHO),real)
+
+notif-status: ## Show all notifications
+	./scripts/test-friends.sh notif-status
+
+notif-clear: ## Clear notifications (usage: make notif-clear [WHO=real])
+	./scripts/test-friends.sh notif-clear $(or $(WHO),real)
 
 # ─── Manual testing helpers ───────────────────────────────────────────────────
 

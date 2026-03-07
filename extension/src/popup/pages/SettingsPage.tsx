@@ -2,7 +2,6 @@ import { useState } from "react"
 import { useAuth } from "~contexts/SupabaseAuthContext"
 import { supabase } from "~lib/supabase"
 import { LogOut, Copy, UserPlus } from "lucide-react"
-import { FriendsSection } from "~popup/components/FriendsSection"
 
 export function SettingsPage() {
   const { user, signOut } = useAuth()
@@ -167,9 +166,6 @@ export function SettingsPage() {
           {copied && <span className="text-xs text-accent">Copied!</span>}
         </div>
       </div>
-
-      {/* Friends */}
-      <FriendsSection />
 
       {/* Add Friend */}
       <div className="mb-6">

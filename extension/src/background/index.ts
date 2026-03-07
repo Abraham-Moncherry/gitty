@@ -170,7 +170,8 @@ async function checkDailyGoal() {
       })
     }
 
-    // Deliver any pending notification_queue entries
+    // Deliver any pending notification_queue entries as Chrome notifications
+    // (don't mark as read — that happens when user views the Notifications page)
     const { data: pending } = await supabase
       .from("notification_queue")
       .select("*")
@@ -187,11 +188,6 @@ async function checkDailyGoal() {
         message: notif.body,
         priority: 1
       })
-
-      await supabase
-        .from("notification_queue")
-        .update({ read: true })
-        .eq("id", notif.id)
     }
   } catch (err) {
     console.error("[Gitty] Goal check error:", err)
