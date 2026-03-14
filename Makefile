@@ -61,7 +61,10 @@ db-start: ## Start local Supabase stack
 db-stop: ## Stop local Supabase stack
 	supabase stop
 
-db-reset: ## Reset DB: drop all tables and re-run migrations
+db-reset: ## Reset DB: drop all tables and re-run migrations (LOCAL only)
+	@echo "⚠️  This will wipe ALL local DB data (commits, users, streaks)."
+	@echo "   Production is NOT affected."
+	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || (echo "Cancelled." && exit 1)
 	supabase db reset
 
 db-status: ## Show Supabase service URLs and status

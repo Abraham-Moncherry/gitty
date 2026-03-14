@@ -3,6 +3,33 @@ import { useAuth } from "~contexts/SupabaseAuthContext"
 import { supabase } from "~lib/supabase"
 import { LogOut, Copy, UserPlus } from "lucide-react"
 
+const TIMEZONES: Array<{ value: string; label: string }> = [
+  { value: "Pacific/Honolulu", label: "(UTC-10) Hawaii" },
+  { value: "America/Anchorage", label: "(UTC-9) Alaska" },
+  { value: "America/Los_Angeles", label: "(UTC-8) Pacific" },
+  { value: "America/Denver", label: "(UTC-7) Mountain" },
+  { value: "America/Chicago", label: "(UTC-6) Central" },
+  { value: "America/New_York", label: "(UTC-5) Eastern" },
+  { value: "America/Sao_Paulo", label: "(UTC-3) São Paulo" },
+  { value: "UTC", label: "(UTC+0) UTC" },
+  { value: "Europe/London", label: "(UTC+0) London" },
+  { value: "Europe/Paris", label: "(UTC+1) Paris" },
+  { value: "Europe/Berlin", label: "(UTC+1) Berlin" },
+  { value: "Europe/Istanbul", label: "(UTC+3) Istanbul" },
+  { value: "Europe/Moscow", label: "(UTC+3) Moscow" },
+  { value: "Asia/Dubai", label: "(UTC+4) Dubai" },
+  { value: "Asia/Kolkata", label: "(UTC+5:30) India" },
+  { value: "Asia/Singapore", label: "(UTC+8) Singapore" },
+  { value: "Asia/Shanghai", label: "(UTC+8) China" },
+  { value: "Asia/Tokyo", label: "(UTC+9) Tokyo" },
+  { value: "Australia/Perth", label: "(UTC+8) Perth" },
+  { value: "Australia/Adelaide", label: "(UTC+9:30) Adelaide" },
+  { value: "Australia/Brisbane", label: "(UTC+10) Brisbane" },
+  { value: "Australia/Sydney", label: "(UTC+11) Sydney" },
+  { value: "Australia/Melbourne", label: "(UTC+11) Melbourne" },
+  { value: "Pacific/Auckland", label: "(UTC+12) Auckland" }
+]
+
 export function SettingsPage() {
   const { user, signOut } = useAuth()
   const [dailyGoal, setDailyGoal] = useState(user?.daily_goal ?? 5)
@@ -12,6 +39,7 @@ export function SettingsPage() {
   const [notificationTime, setNotificationTime] = useState(
     user?.notification_time ?? "20:00:00"
   )
+  const [timezone, setTimezone] = useState(user?.timezone ?? "UTC")
   const [friendCodeInput, setFriendCodeInput] = useState("")
   const [copied, setCopied] = useState(false)
   const [friendStatus, setFriendStatus] = useState<{
@@ -148,6 +176,27 @@ export function SettingsPage() {
           />
         </div>
       )}
+
+      {/* Timezone */}
+      <div className="mb-4">
+        <label className="text-sm font-medium text-slate-text">
+          Timezone
+        </label>
+        <select
+          value={timezone}
+          onChange={(e) => {
+            const val = e.target.value
+            setTimezone(val)
+            updateSetting("timezone", val)
+          }}
+          className="mt-1 block w-full px-3 py-2 border border-slate-border rounded-lg text-sm">
+          {TIMEZONES.map((tz) => (
+            <option key={tz.value} value={tz.value}>
+              {tz.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* Friend Code */}
       <div className="mb-4">

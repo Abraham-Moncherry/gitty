@@ -59,6 +59,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single()
 
     if (data) {
+      // Auto-detect timezone on first login (default is 'UTC')
+      if (data.timezone === "UTC") {
+        const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
+        if (detected && detected !== "UTC") {
+          await supabase
+            .from("users")
+            .update({ timezone: detected })
+            .eq("id", userId)
+          data.timezone = detected
+        }
+      }
       setUser(data as User)
       setLoading(false)
       return

@@ -23,3 +23,7 @@ enabled = true
 client_id = "env(GITHUB_CLIENT_ID)"
 secret = "env(GITHUB_CLIENT_SECRET)"
 redirect_uri = "http://localhost:54321/auth/v1/callback"
+
+[edge_runtime]
+# Allow outbound network access (needed for GitHub API calls in edge functions)
+policy = "per_worker"

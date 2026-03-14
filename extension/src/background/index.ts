@@ -35,6 +35,15 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 })
 
+// ── Sync on login ────────────────────────────────────────────
+supabase.auth.onAuthStateChange(async (event) => {
+  if (event === "SIGNED_IN") {
+    console.log("[Gitty] User signed in, syncing...")
+    await backfillIfNeeded()
+    await syncCommits()
+  }
+})
+
 // ── Auth check ────────────────────────────────────────────────
 
 async function checkAuthAndSync() {
@@ -145,11 +154,15 @@ async function checkDailyGoal() {
     if (!user || !user.notifications_enabled) return
 
     // Only notify within 1 hour of the configured notification time
-    const now = new Date()
+    // Use user's timezone instead of system time
+    const userTz = user.timezone || "UTC"
+    const nowInTz = new Date(
+      new Date().toLocaleString("en-US", { timeZone: userTz })
+    )
     const [hours] = user.notification_time.split(":").map(Number)
-    if (Math.abs(now.getHours() - hours) > 1) return
+    if (Math.abs(nowInTz.getHours() - hours) > 1) return
 
-    const today = now.toISOString().split("T")[0]
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: userTz })
     const { data: todayData } = await supabase
       .from("daily_commits")
       .select("commit_count, goal_met")
