@@ -35,14 +35,116 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 })
 
-// ── Sync on login ────────────────────────────────────────────
-supabase.auth.onAuthStateChange(async (event) => {
-  if (event === "SIGNED_IN") {
+// ── Message handler ─────────────────────────────────────────
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === "SIGNED_IN") {
     console.log("[Gitty] User signed in, syncing...")
-    await backfillIfNeeded()
-    await syncCommits()
+    checkAuthAndSync()
+  }
+
+  if (message.type === "START_OAUTH") {
+    console.log("[Gitty] Starting OAuth flow from background...")
+    handleOAuthFlow().then((result) => {
+      sendResponse(result)
+    })
+    // Return true to indicate async sendResponse
+    return true
   }
 })
+
+// ── OAuth flow (runs in background so it survives popup close) ──
+
+async function handleOAuthFlow(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const redirectUrl = chrome.identity.getRedirectURL()
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: true,
+        scopes: "read:user"
+      }
+    })
+
+    if (error || !data.url) {
+      return { success: false, error: error?.message ?? "No OAuth URL" }
+    }
+
+    console.log("[Gitty] OAuth URL:", data.url)
+
+    const responseUrl = await new Promise<string | undefined>((resolve) => {
+      chrome.identity.launchWebAuthFlow(
+        { url: data.url, interactive: true },
+        (callbackUrl) => {
+          if (chrome.runtime.lastError) {
+            console.error("[Gitty] Auth flow error:", chrome.runtime.lastError.message)
+          }
+          resolve(callbackUrl)
+        }
+      )
+    })
+
+    if (!responseUrl) {
+      return { success: false, error: "Auth flow cancelled" }
+    }
+
+    const url = new URL(responseUrl)
+
+    // Handle PKCE flow (Supabase v2 default)
+    const code = url.searchParams.get("code")
+    if (code) {
+      console.log("[Gitty] Got PKCE code, exchanging for session...")
+      const { data: sessionData, error: exchangeError } =
+        await supabase.auth.exchangeCodeForSession(code)
+
+      if (exchangeError) {
+        return { success: false, error: exchangeError.message }
+      }
+
+      if (sessionData?.session) {
+        const providerToken = sessionData.session.provider_token
+        if (providerToken) {
+          await supabase.auth.updateUser({
+            data: { provider_token: providerToken }
+          })
+        }
+
+        console.log("[Gitty] OAuth complete, running sync...")
+        await checkAuthAndSync()
+        return { success: true }
+      }
+    }
+
+    // Fallback: implicit flow — tokens in hash fragment
+    const hashParams = new URLSearchParams(url.hash.substring(1))
+    const accessToken = hashParams.get("access_token")
+    const refreshToken = hashParams.get("refresh_token")
+    const providerToken = hashParams.get("provider_token")
+
+    if (accessToken && refreshToken) {
+      await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      })
+
+      if (providerToken) {
+        await supabase.auth.updateUser({
+          data: { provider_token: providerToken }
+        })
+      }
+
+      console.log("[Gitty] OAuth complete (implicit), running sync...")
+      await checkAuthAndSync()
+      return { success: true }
+    }
+
+    return { success: false, error: "No auth code or tokens in response" }
+  } catch (err) {
+    console.error("[Gitty] OAuth error:", err)
+    return { success: false, error: String(err) }
+  }
+}
 
 // ── Auth check ────────────────────────────────────────────────
 

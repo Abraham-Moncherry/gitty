@@ -17,6 +17,7 @@ interface AuthContextValue {
   loading: boolean
   signInWithGitHub: () => Promise<void>
   signOut: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function fetchUserProfile(userId: string, retries = 3) {
+  async function fetchUserProfile(userId: string, retries = 8) {
     const { data } = await supabase
       .from("users")
       .select("*")
@@ -76,59 +77,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // User row might not exist yet (trigger hasn't fired), retry
+    // Keep loading=true so the spinner shows instead of "profile not found"
     if (retries > 0) {
-      await new Promise((r) => setTimeout(r, 1000))
+      await new Promise((r) => setTimeout(r, 500))
       return fetchUserProfile(userId, retries - 1)
     }
 
+    // Only give up after all retries exhausted (4 seconds)
     setLoading(false)
   }
 
+  async function refreshUser() {
+    const { data: { session: s } } = await supabase.auth.getSession()
+    if (s) {
+      const { data } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", s.user.id)
+        .single()
+      if (data) setUser(data as User)
+    }
+  }
+
   async function signInWithGitHub() {
-    const redirectUrl = chrome.identity.getRedirectURL()
+    // Delegate OAuth to background service worker so it survives popup close
+    setLoading(true)
+    const response = await chrome.runtime.sendMessage({ type: "START_OAUTH" })
 
-    // Get OAuth URL from Supabase without navigating
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: true,
-        scopes: "read:user"
+    if (response?.success) {
+      // Background completed OAuth + sync. Reload session from storage.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setSession(session)
+        await fetchUserProfile(session.user.id)
       }
-    })
-
-    if (error || !data.url) return
-
-    // Open OAuth flow in a Chrome identity popup
-    const responseUrl = await new Promise<string | undefined>((resolve) => {
-      chrome.identity.launchWebAuthFlow(
-        { url: data.url, interactive: true },
-        (callbackUrl) => resolve(callbackUrl)
-      )
-    })
-
-    if (!responseUrl) return
-
-    // Extract tokens from the callback URL hash fragment
-    const url = new URL(responseUrl)
-    const hashParams = new URLSearchParams(url.hash.substring(1))
-
-    const accessToken = hashParams.get("access_token")
-    const refreshToken = hashParams.get("refresh_token")
-    const providerToken = hashParams.get("provider_token")
-
-    if (accessToken && refreshToken) {
-      await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      })
-
-      // Store GitHub provider token in user_metadata so edge functions can access it
-      if (providerToken) {
-        await supabase.auth.updateUser({
-          data: { provider_token: providerToken }
-        })
-      }
+    } else {
+      console.error("[Gitty] OAuth failed:", response?.error)
+      setLoading(false)
     }
   }
 
@@ -147,7 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabaseUser: session?.user ?? null,
         loading,
         signInWithGitHub,
-        signOut
+        signOut,
+        refreshUser
       }}>
       {children}
     </AuthContext.Provider>
