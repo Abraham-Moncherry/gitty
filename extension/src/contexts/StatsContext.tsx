@@ -24,13 +24,15 @@ interface StatsContextValue {
 const StatsContext = createContext<StatsContextValue | null>(null)
 
 export function StatsProvider({ children }: { children: ReactNode }) {
-  const { user, session, refreshUser } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [stats, setStats] = useState<CachedStats | null>(null)
   const [loading, setLoading] = useState(true)
   const refreshUserRef = useRef(refreshUser)
   refreshUserRef.current = refreshUser
 
   const refreshStats = useCallback(async () => {
+    // Check session fresh from storage instead of relying on closure
+    const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
 
     try {
@@ -64,7 +66,7 @@ export function StatsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [session])
+  }, [])
 
   useEffect(() => {
     if (!user) {

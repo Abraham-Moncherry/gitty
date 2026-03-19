@@ -47,19 +47,16 @@ async function scheduleGoalAlarm() {
   const userTz = user.timezone || "UTC"
   const [hours, minutes] = user.notification_time.split(":").map(Number)
 
-  // Calculate next occurrence of notification_time in user's timezone
   const nowInTz = new Date(
     new Date().toLocaleString("en-US", { timeZone: userTz })
   )
   const targetInTz = new Date(nowInTz)
   targetInTz.setHours(hours, minutes, 0, 0)
 
-  // If the time already passed today, schedule for tomorrow
   if (targetInTz <= nowInTz) {
     targetInTz.setDate(targetInTz.getDate() + 1)
   }
 
-  // Convert back to absolute time: offset = (nowInTz - realNow), apply inverse
   const realNow = Date.now()
   const offsetMs = nowInTz.getTime() - realNow
   const alarmTime = targetInTz.getTime() - offsetMs
@@ -75,7 +72,6 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     await syncCommits()
   } else if (alarm.name === ALARM_GOAL) {
     await checkDailyGoal()
-    // Reschedule for tomorrow
     await scheduleGoalAlarm()
   }
 })
@@ -88,23 +84,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === "SETTINGS_UPDATED") {
-    console.log("[Gitty] Settings updated, rescheduling goal alarm...")
     scheduleGoalAlarm()
   }
 
   if (message.type === "START_OAUTH") {
-    console.log("[Gitty] Starting OAuth flow from background...")
     handleOAuthFlow().then((result) => {
       sendResponse(result)
     })
-    // Return true to indicate async sendResponse
     return true
   }
 })
 
 // ── OAuth flow (runs in background so it survives popup close) ──
 
-async function handleOAuthFlow(): Promise<{ success: boolean; error?: string }> {
+async function handleOAuthFlow(retries = 2): Promise<{ success: boolean; error?: string }> {
   try {
     const redirectUrl = chrome.identity.getRedirectURL()
 
@@ -121,14 +114,12 @@ async function handleOAuthFlow(): Promise<{ success: boolean; error?: string }> 
       return { success: false, error: error?.message ?? "No OAuth URL" }
     }
 
-    console.log("[Gitty] OAuth URL:", data.url)
-
     const responseUrl = await new Promise<string | undefined>((resolve) => {
       chrome.identity.launchWebAuthFlow(
         { url: data.url, interactive: true },
         (callbackUrl) => {
           if (chrome.runtime.lastError) {
-            console.error("[Gitty] Auth flow error:", chrome.runtime.lastError.message)
+            console.warn("[Gitty] Auth flow error:", chrome.runtime.lastError.message)
           }
           resolve(callbackUrl)
         }
@@ -136,35 +127,38 @@ async function handleOAuthFlow(): Promise<{ success: boolean; error?: string }> 
     })
 
     if (!responseUrl) {
+      if (retries > 0) {
+        console.log("[Gitty] Retrying OAuth flow...")
+        return handleOAuthFlow(retries - 1)
+      }
       return { success: false, error: "Auth flow cancelled" }
     }
 
     const url = new URL(responseUrl)
+    const code = url.searchParams.get("code")
 
-    // Implicit flow — tokens in hash fragment
-    const hashParams = new URLSearchParams(url.hash.substring(1))
-    const accessToken = hashParams.get("access_token")
-    const refreshToken = hashParams.get("refresh_token")
-    const providerToken = hashParams.get("provider_token")
+    if (code) {
+      const { data: sessionData, error: exchangeError } =
+        await supabase.auth.exchangeCodeForSession(code)
 
-    if (accessToken && refreshToken) {
-      await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      })
-
-      if (providerToken) {
-        await supabase.auth.updateUser({
-          data: { provider_token: providerToken }
-        })
+      if (exchangeError) {
+        return { success: false, error: exchangeError.message }
       }
 
-      console.log("[Gitty] OAuth complete, running sync...")
-      await checkAuthAndSync()
-      return { success: true }
+      if (sessionData?.session) {
+        const providerToken = sessionData.session.provider_token
+        if (providerToken) {
+          await supabase.auth.updateUser({
+            data: { provider_token: providerToken }
+          })
+        }
+
+        await checkAuthAndSync()
+        return { success: true }
+      }
     }
 
-    return { success: false, error: "No auth tokens in response" }
+    return { success: false, error: "No auth code in response" }
   } catch (err) {
     console.error("[Gitty] OAuth error:", err)
     return { success: false, error: String(err) }
@@ -235,7 +229,6 @@ async function syncCommits() {
     const { data, error } = await supabase.functions.invoke("sync-commits")
 
     if (error) {
-      // Edge function may not be deployed yet
       console.warn("[Gitty] sync-commits failed:", error.message)
       return
     }
@@ -253,8 +246,6 @@ async function syncCommits() {
         lastFetched: Date.now()
       }
       await setCachedStats(stats)
-
-
     }
   } catch (err) {
     console.error("[Gitty] Sync error:", err)
@@ -300,7 +291,6 @@ async function checkDailyGoal() {
       })
     }
 
-    // Deliver any pending notification_queue entries as Chrome notifications
     const { data: pending } = await supabase
       .from("notification_queue")
       .select("*")
