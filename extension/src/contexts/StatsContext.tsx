@@ -23,7 +23,7 @@ interface StatsContextValue {
 const StatsContext = createContext<StatsContextValue | null>(null)
 
 export function StatsProvider({ children }: { children: ReactNode }) {
-  const { user, session } = useAuth()
+  const { user, session, refreshUser } = useAuth()
   const [stats, setStats] = useState<CachedStats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -53,12 +53,15 @@ export function StatsProvider({ children }: { children: ReactNode }) {
 
       setStats(newStats)
       await setCachedStats(newStats)
+
+      // Refresh user profile so total_commits updates in the UI
+      await refreshUser()
     } catch (err) {
       console.error("[Gitty] StatsContext refresh error:", err)
     } finally {
       setLoading(false)
     }
-  }, [user, session])
+  }, [user, session, refreshUser])
 
   useEffect(() => {
     if (!user) {
