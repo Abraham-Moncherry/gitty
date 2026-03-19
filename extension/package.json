@@ -1,7 +1,7 @@
 {
   "name": "gitty",
   "displayName": "Gitty",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Gamify your git commits — track streaks, earn badges, compete on leaderboards.",
   "scripts": {
     "dev": "plasmo dev",
