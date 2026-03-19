@@ -157,19 +157,26 @@ export async function handler(req: Request): Promise<Response> {
       })
       .eq("id", auth.userId)
 
-    // 9. Get weekly commits (Monday through today)
+    // 9. Get weekly commits (Monday through Sunday, 7 slots)
     const now = new Date(
       new Date().toLocaleString("en-US", { timeZone: auth.timezone })
     )
     const dayOfWeek = now.getDay()
     const monday = new Date(now)
     monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
-    const mondayStr = monday.toISOString().split("T")[0]
 
-    const weeklyCommits = (allDays ?? [])
-      .filter((d) => d.date >= mondayStr && d.date <= todayStr)
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((d) => ({ date: d.date, count: d.commit_count }))
+    // Build a map of date -> commit_count for quick lookup
+    const commitsByDate = new Map(
+      (allDays ?? []).map((d) => [d.date, d.commit_count])
+    )
+
+    // Always return 7 entries (Mon-Sun) so UI index maps correctly
+    const weeklyCommits = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday)
+      d.setDate(monday.getDate() + i)
+      const dateStr = d.toISOString().split("T")[0]
+      return { date: dateStr, count: commitsByDate.get(dateStr) ?? 0 }
+    })
 
     // 10. Recalculate leaderboard rankings (populates leaderboard_cache)
     const allTimeRanks = await calculateLeaderboard(serviceClient)
