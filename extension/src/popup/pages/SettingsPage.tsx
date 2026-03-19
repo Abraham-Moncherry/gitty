@@ -145,7 +145,9 @@ export function SettingsPage() {
           onClick={() => {
             const next = !notificationsEnabled
             setNotificationsEnabled(next)
-            updateSetting("notifications_enabled", next)
+            updateSetting("notifications_enabled", next).then(() =>
+              chrome.runtime.sendMessage({ type: "SETTINGS_UPDATED" })
+            )
           }}
           className={`w-11 h-6 rounded-full transition-colors relative ${
             notificationsEnabled ? "bg-primary" : "bg-slate-border"
@@ -170,7 +172,9 @@ export function SettingsPage() {
             onChange={(e) => {
               const val = e.target.value + ":00"
               setNotificationTime(val)
-              updateSetting("notification_time", val)
+              updateSetting("notification_time", val).then(() =>
+                chrome.runtime.sendMessage({ type: "SETTINGS_UPDATED" })
+              )
             }}
             className="mt-1 block px-3 py-2 border border-slate-border rounded-lg text-sm"
           />
@@ -187,7 +191,9 @@ export function SettingsPage() {
           onChange={(e) => {
             const val = e.target.value
             setTimezone(val)
-            updateSetting("timezone", val)
+            updateSetting("timezone", val).then(() =>
+              chrome.runtime.sendMessage({ type: "SETTINGS_UPDATED" })
+            )
           }}
           className="mt-1 block w-full px-3 py-2 border border-slate-border rounded-lg text-sm">
           {TIMEZONES.map((tz) => (

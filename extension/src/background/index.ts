@@ -24,7 +24,50 @@ chrome.runtime.onStartup.addListener(async () => {
 
 async function setupAlarms() {
   await chrome.alarms.create(ALARM_SYNC, { periodInMinutes: 30 })
-  await chrome.alarms.create(ALARM_GOAL, { periodInMinutes: 60 })
+  await scheduleGoalAlarm()
+}
+
+async function scheduleGoalAlarm() {
+  const {
+    data: { session }
+  } = await supabase.auth.getSession()
+  if (!session) return
+
+  const { data: user } = await supabase
+    .from("users")
+    .select("notifications_enabled, notification_time, timezone")
+    .eq("id", session.user.id)
+    .single()
+
+  if (!user || !user.notifications_enabled) {
+    await chrome.alarms.clear(ALARM_GOAL)
+    return
+  }
+
+  const userTz = user.timezone || "UTC"
+  const [hours, minutes] = user.notification_time.split(":").map(Number)
+
+  // Calculate next occurrence of notification_time in user's timezone
+  const nowInTz = new Date(
+    new Date().toLocaleString("en-US", { timeZone: userTz })
+  )
+  const targetInTz = new Date(nowInTz)
+  targetInTz.setHours(hours, minutes, 0, 0)
+
+  // If the time already passed today, schedule for tomorrow
+  if (targetInTz <= nowInTz) {
+    targetInTz.setDate(targetInTz.getDate() + 1)
+  }
+
+  // Convert back to absolute time: offset = (nowInTz - realNow), apply inverse
+  const realNow = Date.now()
+  const offsetMs = nowInTz.getTime() - realNow
+  const alarmTime = targetInTz.getTime() - offsetMs
+
+  await chrome.alarms.create(ALARM_GOAL, { when: alarmTime })
+  console.log(
+    `[Gitty] Goal reminder scheduled for ${targetInTz.toLocaleString()} (${userTz})`
+  )
 }
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -32,6 +75,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     await syncCommits()
   } else if (alarm.name === ALARM_GOAL) {
     await checkDailyGoal()
+    // Reschedule for tomorrow
+    await scheduleGoalAlarm()
   }
 })
 
@@ -40,6 +85,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "SIGNED_IN") {
     console.log("[Gitty] User signed in, syncing...")
     checkAuthAndSync()
+  }
+
+  if (message.type === "SETTINGS_UPDATED") {
+    console.log("[Gitty] Settings updated, rescheduling goal alarm...")
+    scheduleGoalAlarm()
   }
 
   if (message.type === "START_OAUTH") {
@@ -247,23 +297,13 @@ async function checkDailyGoal() {
   try {
     const { data: user } = await supabase
       .from("users")
-      .select(
-        "daily_goal, notifications_enabled, notification_time, timezone, github_username"
-      )
+      .select("daily_goal, notifications_enabled, timezone")
       .eq("id", session.user.id)
       .single()
 
     if (!user || !user.notifications_enabled) return
 
-    // Only notify within 1 hour of the configured notification time
-    // Use user's timezone instead of system time
     const userTz = user.timezone || "UTC"
-    const nowInTz = new Date(
-      new Date().toLocaleString("en-US", { timeZone: userTz })
-    )
-    const [hours] = user.notification_time.split(":").map(Number)
-    if (Math.abs(nowInTz.getHours() - hours) > 1) return
-
     const today = new Date().toLocaleDateString("en-CA", { timeZone: userTz })
     const { data: todayData } = await supabase
       .from("daily_commits")
@@ -286,7 +326,6 @@ async function checkDailyGoal() {
     }
 
     // Deliver any pending notification_queue entries as Chrome notifications
-    // (don't mark as read — that happens when user views the Notifications page)
     const { data: pending } = await supabase
       .from("notification_queue")
       .select("*")

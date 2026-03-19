@@ -4,6 +4,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode
 } from "react"
 import { supabase } from "~lib/supabase"
@@ -26,9 +27,11 @@ export function StatsProvider({ children }: { children: ReactNode }) {
   const { user, session, refreshUser } = useAuth()
   const [stats, setStats] = useState<CachedStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const refreshUserRef = useRef(refreshUser)
+  refreshUserRef.current = refreshUser
 
   const refreshStats = useCallback(async () => {
-    if (!user || !session) return
+    if (!session) return
 
     try {
       const { data, error } = await supabase.functions.invoke("sync-commits")
@@ -55,13 +58,13 @@ export function StatsProvider({ children }: { children: ReactNode }) {
       await setCachedStats(newStats)
 
       // Refresh user profile so total_commits updates in the UI
-      await refreshUser()
+      await refreshUserRef.current()
     } catch (err) {
       console.error("[Gitty] StatsContext refresh error:", err)
     } finally {
       setLoading(false)
     }
-  }, [user, session, refreshUser])
+  }, [session])
 
   useEffect(() => {
     if (!user) {
@@ -80,7 +83,7 @@ export function StatsProvider({ children }: { children: ReactNode }) {
       // Then fetch fresh data
       await refreshStats()
     })()
-  }, [user, refreshStats])
+  }, [user?.id])
 
   return (
     <StatsContext.Provider value={{ stats, loading, refreshStats }}>
