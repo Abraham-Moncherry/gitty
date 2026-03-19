@@ -141,32 +141,7 @@ async function handleOAuthFlow(): Promise<{ success: boolean; error?: string }> 
 
     const url = new URL(responseUrl)
 
-    // Handle PKCE flow (Supabase v2 default)
-    const code = url.searchParams.get("code")
-    if (code) {
-      console.log("[Gitty] Got PKCE code, exchanging for session...")
-      const { data: sessionData, error: exchangeError } =
-        await supabase.auth.exchangeCodeForSession(code)
-
-      if (exchangeError) {
-        return { success: false, error: exchangeError.message }
-      }
-
-      if (sessionData?.session) {
-        const providerToken = sessionData.session.provider_token
-        if (providerToken) {
-          await supabase.auth.updateUser({
-            data: { provider_token: providerToken }
-          })
-        }
-
-        console.log("[Gitty] OAuth complete, running sync...")
-        await checkAuthAndSync()
-        return { success: true }
-      }
-    }
-
-    // Fallback: implicit flow — tokens in hash fragment
+    // Implicit flow — tokens in hash fragment
     const hashParams = new URLSearchParams(url.hash.substring(1))
     const accessToken = hashParams.get("access_token")
     const refreshToken = hashParams.get("refresh_token")
@@ -184,12 +159,12 @@ async function handleOAuthFlow(): Promise<{ success: boolean; error?: string }> 
         })
       }
 
-      console.log("[Gitty] OAuth complete (implicit), running sync...")
+      console.log("[Gitty] OAuth complete, running sync...")
       await checkAuthAndSync()
       return { success: true }
     }
 
-    return { success: false, error: "No auth code or tokens in response" }
+    return { success: false, error: "No auth tokens in response" }
   } catch (err) {
     console.error("[Gitty] OAuth error:", err)
     return { success: false, error: String(err) }

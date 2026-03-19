@@ -21,6 +21,7 @@ const chromeStorageAdapter = {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: chromeStorageAdapter,
+    flowType: "implicit",
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false
